@@ -72,7 +72,7 @@ echo "Parsed experiments.txt: $N_STANDARD standard + $N_DIAG diagnostic = $((N_S
 
 # --- Check if a run already completed (for --retry) ---
 already_done() {
-  local cfg="$1"
+  local cfg="$1" diag="$2"
   IFS=',' read -r env seed nqs minqs dropout maxsteps <<< "$cfg"
   for summary in "$RESULTS_DIR"/*/summary.json; do
     [ -f "$summary" ] || return 1
@@ -98,13 +98,22 @@ submit_batch() {
     submit_count=$((submit_count + 1))
     return
   fi
+
+  # --export=ALL forwards the current environment to the job.
+  # We also explicitly pass EXPERIMENTS and DIAG so they are guaranteed set.
   local output
-  [ "$diag" = "1" ] \
-    && output=$(DIAG=1 EXPERIMENTS="$experiments" sbatch run.sh 2>&1) \
-    || output=$(EXPERIMENTS="$experiments" sbatch run.sh 2>&1)
-  echo "$output" | grep -q "Submitted" \
-    && { echo "  $output"; submit_count=$((submit_count + 1)); } \
-    || echo "  ERROR: $output" >&2
+  if [ "$diag" = "1" ]; then
+    output=$(sbatch --export=ALL,EXPERIMENTS="$experiments",DIAG=1 run.sh 2>&1)
+  else
+    output=$(sbatch --export=ALL,EXPERIMENTS="$experiments",DIAG=0 run.sh 2>&1)
+  fi
+
+  if echo "$output" | grep -q "Submitted"; then
+    echo "  $output"
+    submit_count=$((submit_count + 1))
+  else
+    echo "  ERROR: $output" >&2
+  fi
 }
 
 # --- Pair runs by nqs (similar runtime), preferring same env ---
@@ -152,7 +161,7 @@ process_runs() {
   local filtered="" local_skip=0
   while IFS= read -r run; do
     [ -z "$run" ] && continue
-    if [ "$RETRY_MODE" = true ] && already_done "$run"; then
+    if [ "$RETRY_MODE" = true ] && already_done "$run" "$diag"; then
       local_skip=$((local_skip + 1)); continue
     fi
     filtered="${filtered:+$filtered
