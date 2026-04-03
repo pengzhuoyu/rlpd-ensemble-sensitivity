@@ -99,14 +99,13 @@ submit_batch() {
     return
   fi
 
-  # --export=ALL forwards the current environment to the job.
-  # We also explicitly pass EXPERIMENTS and DIAG so they are guaranteed set.
+  # Export as shell variables so --export=ALL carries them into SLURM.
+  # Cannot use --export=EXPERIMENTS="..." because SLURM splits on commas,
+  # which destroys the comma-separated experiment format.
+  export EXPERIMENTS="$experiments"
+  export DIAG="$diag"
   local output
-  if [ "$diag" = "1" ]; then
-    output=$(sbatch --export=ALL,EXPERIMENTS="$experiments",DIAG=1 run.sh 2>&1)
-  else
-    output=$(sbatch --export=ALL,EXPERIMENTS="$experiments",DIAG=0 run.sh 2>&1)
-  fi
+  output=$(sbatch --export=ALL run.sh 2>&1)
 
   if echo "$output" | grep -q "Submitted"; then
     echo "  $output"
