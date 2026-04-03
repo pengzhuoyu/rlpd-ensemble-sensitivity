@@ -93,7 +93,8 @@ class SACLearnerV2(Agent):
         critic = TrainState.create(
             apply_fn=critic_def.apply, params=critic_params, tx=tx)
 
-        target_critic_def = Ensemble(critic_cls, num=num_qs)
+        target_critic_def = Ensemble(
+            critic_cls, num=num_min_qs or num_qs)
         target_critic = TrainState.create(
             apply_fn=target_critic_def.apply,
             params=critic_params,

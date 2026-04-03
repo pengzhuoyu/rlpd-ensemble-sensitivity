@@ -122,7 +122,7 @@ rlpd_experiments/
 
 ## Key design decisions
 
-**Target critic uses full ensemble.** The target critic is initialized with `num_qs` heads (not `num_min_qs`). Subsampling to `num_min_qs` happens at inference time via `subsample_ensemble`, not at construction. This ensures the EMA update between critic and target_critic operates on matching parameter shapes.
+**Target critic matches subsample size.** The target critic's `apply_fn` is built with `num_min_qs` heads (matching the subsampled params it receives). Its `params` store all `num_qs` heads (EMA'd from the full critic), and `subsample_ensemble` slices them down before each forward pass. This ensures the vmap axis size matches the param count, which is critical when dropout splits RNG keys per head.
 
 **Dropout masks are independent per head.** The upstream RLPD `Ensemble` uses `nn.vmap` with `split_rngs={"dropout": True}`, giving each Q-head a different dropout mask. This is essential for DroQ-style implicit ensembling.
 
