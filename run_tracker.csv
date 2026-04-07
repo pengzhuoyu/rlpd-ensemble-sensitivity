@@ -1,0 +1,184 @@
+env,nq,mq,dropout,seed,type,status,job_id,final_score,peak_score,purpose,maxsteps
+pen-binary-v0,2,1,0,0,standard,done,49894145,-9944.0,-6600.0,no dropout grid,2000000
+pen-binary-v0,2,1,0,1,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,2,1,0,2,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,2,1,0,3,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,2,1,0,4,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,2,2,0,0,standard,done,49894145,-4454.5,-3045.0,no dropout grid,2000000
+pen-binary-v0,2,2,0,1,standard,done,49894146,-4968.0,-2930.0,no dropout grid,2000000
+pen-binary-v0,2,2,0,2,standard,done,49894146,-5003.0,-3200.0,no dropout grid,2000000
+pen-binary-v0,2,2,0,3,standard,done,49894147,-4764.0,-3375.0,no dropout grid,2000000
+pen-binary-v0,2,2,0,4,standard,done,49894147,-4159.0,-2850.0,no dropout grid,2000000
+pen-binary-v0,4,2,0,0,standard,done,49894148,-2921.5,-2125.0,no dropout grid,2000000
+pen-binary-v0,4,2,0,1,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,4,2,0,2,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,4,2,0,3,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,4,2,0,4,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,6,2,0,0,standard,done,49894149,-2188.0,-1770.0,no dropout grid,2000000
+pen-binary-v0,6,2,0,1,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,6,2,0,2,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,6,2,0,3,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,6,2,0,4,standard,TODO,,,,,no dropout grid,2000000
+pen-binary-v0,10,2,0,0,standard,done,49894150,-2093.0,-1450.0,no dropout grid,2000000
+pen-binary-v0,10,2,0,1,standard,done,49894161,-2137.5,-1515.0,no dropout grid,2000000
+pen-binary-v0,10,2,0,2,standard,done,49894161,-2036.0,-1475.0,no dropout grid,2000000
+pen-binary-v0,10,2,0,3,standard,done,49894162,-2081.5,-1560.0,no dropout grid,2000000
+pen-binary-v0,10,2,0,4,standard,done,49894162,-2041.5,-1495.0,no dropout grid,2000000
+pen-binary-v0,2,1,0.01,0,standard,done,50038645,-3551.5,-2450.0,dropout grid,2000000
+pen-binary-v0,2,1,0.01,1,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,2,1,0.01,2,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,2,1,0.01,3,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,2,1,0.01,4,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,2,2,0.01,0,standard,done,50038557,-2835.0,-2065.0,dropout grid,2000000
+pen-binary-v0,2,2,0.01,1,standard,done,50038572,-3063.5,-1985.0,dropout grid,2000000
+pen-binary-v0,2,2,0.01,2,standard,done,50038572,-3453.0,-1885.0,dropout grid,2000000
+pen-binary-v0,2,2,0.01,3,standard,done,50038577,-2679.5,-1940.0,dropout grid,2000000
+pen-binary-v0,2,2,0.01,4,standard,done,50038577,-2610.5,-1875.0,dropout grid,2000000
+pen-binary-v0,4,2,0.01,0,standard,done,50038669,-2576.5,-1755.0,dropout grid,2000000
+pen-binary-v0,4,2,0.01,1,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,4,2,0.01,2,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,4,2,0.01,3,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,4,2,0.01,4,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,6,2,0.01,0,standard,done,50038680,-2272.5,-1585.0,dropout grid,2000000
+pen-binary-v0,6,2,0.01,1,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,6,2,0.01,2,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,6,2,0.01,3,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,6,2,0.01,4,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,10,2,0.01,0,standard,done,50038669,-2149.5,-1490.0,dropout grid,2000000
+pen-binary-v0,10,2,0.01,1,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,10,2,0.01,2,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,10,2,0.01,3,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,10,2,0.01,4,standard,TODO,,,,,dropout grid,2000000
+pen-binary-v0,2,2,0.005,0,standard,done,50038557,-3002.0,-1905.0,rate sweep,2000000
+pen-binary-v0,2,2,0.005,1,standard,TODO,,,,,rate sweep,2000000
+pen-binary-v0,2,2,0.005,2,standard,TODO,,,,,rate sweep,2000000
+pen-binary-v0,2,2,0.02,0,standard,done,50038619,-2679.5,-1950.0,rate sweep,2000000
+pen-binary-v0,2,2,0.02,1,standard,TODO,,,,,rate sweep,2000000
+pen-binary-v0,2,2,0.02,2,standard,TODO,,,,,rate sweep,2000000
+pen-binary-v0,2,2,0.05,0,standard,done,50038619,-3141.0,-2000.0,rate sweep,2000000
+pen-binary-v0,2,2,0.1,0,standard,done,50038645,-3128.0,-1975.0,rate sweep,2000000
+pen-binary-v0,2,1,0,0,DIAG,done,49894177,-9940.5,-5490.0,DIAG,2000000
+pen-binary-v0,2,2,0,0,DIAG,done,49894177,-5285.5,-3100.0,DIAG,2000000
+pen-binary-v0,2,1,0.01,0,DIAG,done,49894178,-2894.5,-1675.0,DIAG,2000000
+pen-binary-v0,2,2,0.01,0,DIAG,TODO,,,,,DIAG,2000000
+pen-binary-v0,4,2,0,0,DIAG,done,49894179,-2866.5,-2020.0,DIAG,2000000
+pen-binary-v0,6,2,0,0,DIAG,done,49894184,-2339.0,-1565.0,DIAG,2000000
+pen-binary-v0,10,2,0,0,DIAG,done,49894185,-2008.0,-1470.0,DIAG,2000000
+pen-binary-v0,4,2,0.01,0,DIAG,TODO,,,,,DIAG dropout vs N,2000000
+pen-binary-v0,6,2,0.01,0,DIAG,TODO,,,,,DIAG dropout vs N,2000000
+pen-binary-v0,10,2,0.01,0,DIAG,TODO,,,,,DIAG dropout vs N,2000000
+door-binary-v0,2,1,0,0,standard,done,49894172,-11249.0,-6860.0,no dropout grid,2000000
+door-binary-v0,2,1,0,1,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,2,1,0,2,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,2,1,0,3,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,2,1,0,4,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,2,2,0,0,standard,done,49894172,-17151.5,-6990.0,no dropout grid,2000000
+door-binary-v0,2,2,0,1,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,2,2,0,2,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,2,2,0,3,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,2,2,0,4,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,4,2,0,0,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,4,2,0,1,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,4,2,0,2,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,4,2,0,3,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,4,2,0,4,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,6,2,0,0,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,6,2,0,1,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,6,2,0,2,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,6,2,0,3,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,6,2,0,4,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,10,2,0,0,standard,done,49894175,-4637.0,-4440.0,no dropout grid,2000000
+door-binary-v0,10,2,0,1,standard,done,49894175,-3344.0,-3050.0,no dropout grid,2000000
+door-binary-v0,10,2,0,2,standard,done,49894176,-4401.5,-3570.0,no dropout grid,2000000
+door-binary-v0,10,2,0,3,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,10,2,0,4,standard,TODO,,,,,no dropout grid,2000000
+door-binary-v0,2,1,0.01,0,standard,done,50044220,-5219.5,-3230.0,dropout grid,2000000
+door-binary-v0,2,1,0.01,1,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,2,1,0.01,2,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,2,1,0.01,3,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,2,1,0.01,4,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,2,2,0.01,0,standard,done,50038680,-5187.5,-4520.0,dropout grid,2000000
+door-binary-v0,2,2,0.01,1,standard,done,50044212,-3924.0,-3265.0,dropout grid,2000000
+door-binary-v0,2,2,0.01,2,standard,done,50044212,-3832.0,-3290.0,dropout grid,2000000
+door-binary-v0,2,2,0.01,3,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,2,2,0.01,4,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,4,2,0.01,0,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,4,2,0.01,1,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,4,2,0.01,2,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,4,2,0.01,3,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,4,2,0.01,4,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,6,2,0.01,0,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,6,2,0.01,1,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,6,2,0.01,2,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,6,2,0.01,3,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,6,2,0.01,4,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,10,2,0.01,0,standard,done,50044220,-4983.0,-4815.0,dropout grid,2000000
+door-binary-v0,10,2,0.01,1,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,10,2,0.01,2,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,10,2,0.01,3,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,10,2,0.01,4,standard,TODO,,,,,dropout grid,2000000
+door-binary-v0,2,2,0.005,0,standard,TODO,,,,,rate sweep,2000000
+door-binary-v0,2,2,0.005,1,standard,TODO,,,,,rate sweep,2000000
+door-binary-v0,2,2,0.005,2,standard,TODO,,,,,rate sweep,2000000
+door-binary-v0,2,2,0.02,0,standard,TODO,,,,,rate sweep,2000000
+door-binary-v0,2,2,0.02,1,standard,TODO,,,,,rate sweep,2000000
+door-binary-v0,2,2,0.02,2,standard,TODO,,,,,rate sweep,2000000
+door-binary-v0,2,1,0,0,DIAG,done,49894186,-11594.5,-6105.0,DIAG,2000000
+door-binary-v0,2,2,0,0,DIAG,done,49894186,-13287.5,-7210.0,DIAG,2000000
+door-binary-v0,2,1,0.01,0,DIAG,TODO,,,,,DIAG,2000000
+door-binary-v0,2,2,0.01,0,DIAG,done,50044235,-4190.0,-3250.0,DIAG,2000000
+antmaze-large-diverse-v2,2,1,0,0,standard,TODO,,,,,mq1 control,300000
+antmaze-large-diverse-v2,2,1,0,1,standard,TODO,,,,,mq1 control,300000
+antmaze-large-diverse-v2,2,1,0,2,standard,TODO,,,,,mq1 control,300000
+antmaze-large-diverse-v2,2,1,0,3,standard,TODO,,,,,mq1 control,300000
+antmaze-large-diverse-v2,2,1,0,4,standard,TODO,,,,,mq1 control,300000
+antmaze-large-diverse-v2,2,2,0,0,standard,TODO,,,,,ensemble redundant,300000
+antmaze-large-diverse-v2,2,2,0,1,standard,TODO,,,,,ensemble redundant,300000
+antmaze-large-diverse-v2,2,2,0,2,standard,TODO,,,,,ensemble redundant,300000
+antmaze-large-diverse-v2,2,2,0,3,standard,TODO,,,,,ensemble redundant,300000
+antmaze-large-diverse-v2,2,2,0,4,standard,TODO,,,,,ensemble redundant,300000
+antmaze-large-diverse-v2,2,2,0.01,0,standard,TODO,,,,,dropout neutral,300000
+antmaze-large-diverse-v2,2,2,0.01,1,standard,TODO,,,,,dropout neutral,300000
+antmaze-large-diverse-v2,2,2,0.01,2,standard,TODO,,,,,dropout neutral,300000
+antmaze-large-diverse-v2,2,2,0.01,3,standard,TODO,,,,,dropout neutral,300000
+antmaze-large-diverse-v2,2,2,0.01,4,standard,TODO,,,,,dropout neutral,300000
+antmaze-large-diverse-v2,10,1,0,0,standard,TODO,,,,,mq1 control,300000
+antmaze-large-diverse-v2,10,1,0,1,standard,TODO,,,,,mq1 control,300000
+antmaze-large-diverse-v2,10,1,0,2,standard,TODO,,,,,mq1 control,300000
+antmaze-large-diverse-v2,10,1,0,3,standard,TODO,,,,,mq1 control,300000
+antmaze-large-diverse-v2,10,1,0,4,standard,TODO,,,,,mq1 control,300000
+antmaze-large-diverse-v2,10,2,0,0,standard,TODO,,,,,ensemble redundant,300000
+antmaze-large-diverse-v2,10,2,0,1,standard,TODO,,,,,ensemble redundant,300000
+antmaze-large-diverse-v2,10,2,0,2,standard,TODO,,,,,ensemble redundant,300000
+antmaze-large-diverse-v2,10,2,0,3,standard,TODO,,,,,ensemble redundant,300000
+antmaze-large-diverse-v2,10,2,0,4,standard,TODO,,,,,ensemble redundant,300000
+antmaze-large-diverse-v2,2,1,0,0,DIAG,TODO,,,,,antmaze DIAG,300000
+antmaze-large-diverse-v2,2,2,0,0,DIAG,TODO,,,,,antmaze DIAG,300000
+halfcheetah-medium-v2,2,1,0,0,standard,TODO,,,,,mq1 control,250000
+halfcheetah-medium-v2,2,1,0,1,standard,TODO,,,,,mq1 control,250000
+halfcheetah-medium-v2,2,1,0,2,standard,TODO,,,,,mq1 control,250000
+halfcheetah-medium-v2,2,1,0,3,standard,TODO,,,,,mq1 control,250000
+halfcheetah-medium-v2,2,1,0,4,standard,TODO,,,,,mq1 control,250000
+halfcheetah-medium-v2,2,2,0,0,standard,TODO,,,,,dense reward,250000
+halfcheetah-medium-v2,2,2,0,1,standard,TODO,,,,,dense reward,250000
+halfcheetah-medium-v2,2,2,0,2,standard,TODO,,,,,dense reward,250000
+halfcheetah-medium-v2,2,2,0,3,standard,TODO,,,,,dense reward,250000
+halfcheetah-medium-v2,2,2,0,4,standard,TODO,,,,,dense reward,250000
+halfcheetah-medium-v2,2,2,0.01,0,standard,TODO,,,,,dropout on dense,250000
+halfcheetah-medium-v2,2,2,0.01,1,standard,TODO,,,,,dropout on dense,250000
+halfcheetah-medium-v2,2,2,0.01,2,standard,TODO,,,,,dropout on dense,250000
+halfcheetah-medium-v2,2,2,0.01,3,standard,TODO,,,,,dropout on dense,250000
+halfcheetah-medium-v2,2,2,0.01,4,standard,TODO,,,,,dropout on dense,250000
+halfcheetah-medium-v2,10,1,0,0,standard,TODO,,,,,mq1 control,250000
+halfcheetah-medium-v2,10,1,0,1,standard,TODO,,,,,mq1 control,250000
+halfcheetah-medium-v2,10,1,0,2,standard,TODO,,,,,mq1 control,250000
+halfcheetah-medium-v2,10,1,0,3,standard,TODO,,,,,mq1 control,250000
+halfcheetah-medium-v2,10,1,0,4,standard,TODO,,,,,mq1 control,250000
+halfcheetah-medium-v2,10,2,0,0,standard,TODO,,,,,dense reward baseline,250000
+halfcheetah-medium-v2,10,2,0,1,standard,TODO,,,,,dense reward baseline,250000
+halfcheetah-medium-v2,10,2,0,2,standard,TODO,,,,,dense reward baseline,250000
+halfcheetah-medium-v2,10,2,0,3,standard,TODO,,,,,dense reward baseline,250000
+halfcheetah-medium-v2,10,2,0,4,standard,TODO,,,,,dense reward baseline,250000
+halfcheetah-medium-v2,10,2,0.01,0,standard,TODO,,,,,dropout neutral check,250000
+halfcheetah-medium-v2,2,2,0,0,DIAG,TODO,,,,,locomotion DIAG,250000
+halfcheetah-medium-v2,2,2,0.01,0,DIAG,TODO,,,,,locomotion DIAG,250000

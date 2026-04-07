@@ -1,5 +1,12 @@
-"""diagnostic.py — Multi-head Q diagnostics: pairwise correlation,
-OOD overestimation, feature rank. Handles N=2,4,6,10 heads."""
+"""diagnostic.py — Multi-head Q diagnostics for RLPD ablation runs.
+
+Metrics computed on a fixed buffer of (s, a) pairs:
+  - Pairwise correlation, |Qi - Qj|, ensemble std (head diversity)
+  - q_mean_expert / q_mean_random / overestimation (OOD gap)
+  - Effective rank, condition number (representation quality)
+  - Roughness: variance of Q under small action perturbations
+  - Mask variance: variance of Q across dropout RNG samples (DroQ-style)
+"""
 import csv
 import os
 import numpy as np
@@ -9,6 +16,7 @@ from itertools import combinations
 
 
 def setup_diag_buffer(ds, env, n=1000, seed=42):
+    """Sample a fixed set of (s, a) pairs from the offline dataset."""
     rng = np.random.RandomState(seed)
     idx = rng.randint(0, len(ds), size=n)
     obs = ds.dataset_dict["observations"][idx]
@@ -22,6 +30,7 @@ def setup_diag_buffer(ds, env, n=1000, seed=42):
 
 
 def _get_qs(agent, obs, actions):
+    """Deterministic Q-values for all heads. Used for non-dropout diagnostics."""
     key = jax.random.PRNGKey(0)
     return np.array(agent.critic.apply_fn(
         {"params": agent.critic.params}, obs, actions, False,
@@ -29,8 +38,8 @@ def _get_qs(agent, obs, actions):
 
 
 def _pairwise_stats(qs):
-    """Compute pairwise |Qi-Qj| and corr for all head pairs.
-    qs: [num_qs, n_samples]. Returns mean/max/min of pairwise metrics."""
+    """Mean / max / min of pairwise |Qi - Qj| and corr across heads.
+    qs: [num_qs, n_samples]."""
     num_qs = qs.shape[0]
     if num_qs < 2:
         return 0.0, 1.0, 1.0, 1.0, 0.0
@@ -53,7 +62,7 @@ def _pairwise_stats(qs):
 
 
 def _compute_rank(agent, obs, act, input_dim):
-    """Jacobian-based effective rank. EXPENSIVE."""
+    """Jacobian-based effective rank. EXPENSIVE — call sparingly."""
     def q_head0(sa):
         o = sa[:input_dim]
         a = sa[input_dim:]
@@ -72,8 +81,53 @@ def _compute_rank(agent, obs, act, input_dim):
     s = np.maximum(s, 1e-10)
     s_norm = s / s.sum()
     eff_rank = float(np.exp(-np.sum(s_norm * np.log(s_norm))))
-    cond_number = float(s[0] / s[min(len(s)-1, 49)])
+    cond_number = float(s[0] / s[min(len(s) - 1, 49)])
     return eff_rank, cond_number
+
+
+def _compute_roughness(agent, obs, act, n_perturb=100, sigma=0.05, seed=42):
+    """Roughness of Q surface around (s, a) pairs.
+
+    For each (s, a), sample n_perturb actions a' = a + eps, eps ~ N(0, sigma^2).
+    Compute Q(s, a') for each, then return mean over states of var over perturbations.
+    Uses training=False (deterministic, no dropout) for reproducibility.
+    """
+    key = jax.random.PRNGKey(seed)
+    eps = jax.random.normal(key, (n_perturb,) + act.shape) * sigma
+    act_pert = act[None] + eps  # [n_perturb, n_samples, act_dim]
+
+    def single(a_batch):
+        qs = agent.critic.apply_fn(
+            {"params": agent.critic.params}, obs, a_batch, False,
+            rngs={"dropout": jax.random.PRNGKey(0)})
+        return qs.mean(axis=0)  # mean over heads -> [n_samples]
+
+    q_perturb = jax.vmap(single)(act_pert)  # [n_perturb, n_samples]
+    var_per_state = np.array(q_perturb).var(axis=0)  # [n_samples]
+    return float(var_per_state.mean())
+
+
+def _compute_mask_var(agent, obs, act, n_samples=10, seed=123):
+    """Variance of Q across dropout RNG samples (training=True).
+
+    Measures the implicit-ensemble diversity from DroQ-style dropout.
+    Returns 0 for runs without dropout (deterministic forward pass).
+    """
+    keys = jax.random.split(jax.random.PRNGKey(seed), n_samples)
+
+    def single(k):
+        qs = agent.critic.apply_fn(
+            {"params": agent.critic.params}, obs, act, True,
+            rngs={"dropout": k})
+        return qs.mean(axis=0)  # mean over heads -> [n_samples]
+
+    q_samples = jax.vmap(single)(keys)  # [n_samples, n_obs]
+    return float(np.array(q_samples).var(axis=0).mean())
+
+
+def compute_roughness_only(agent, diag_buf):
+    """Lightweight roughness computation for use by train_abc.py."""
+    return _compute_roughness(agent, diag_buf["obs"], diag_buf["act_expert"])
 
 
 def run_diagnostic(agent, diag_buf, step, diag_path):
@@ -86,7 +140,6 @@ def run_diagnostic(agent, diag_buf, step, diag_path):
     num_qs = qs_ex.shape[0]
     mean_diff, mean_corr, max_corr, min_corr, std_diff = _pairwise_stats(qs_ex)
 
-    # Per-head means
     head_means = [float(np.mean(qs_ex[k])) for k in range(num_qs)]
     q_mean_expert = float(np.mean(qs_ex))
 
@@ -95,7 +148,19 @@ def run_diagnostic(agent, diag_buf, step, diag_path):
     q_mean_random = float(np.mean(qs_rnd))
     overestimation = q_mean_random - q_mean_expert
 
-    # 3. Feature rank — EXPENSIVE, only every 50k
+    # 3. Roughness — variance under action perturbation (every diag step)
+    try:
+        roughness = _compute_roughness(agent, obs, act_ex)
+    except Exception:
+        roughness = -1.0
+
+    # 4. Mask variance — variance under dropout RNG sampling (every diag step)
+    try:
+        mask_var = _compute_mask_var(agent, obs, act_ex)
+    except Exception:
+        mask_var = -1.0
+
+    # 5. Feature rank — EXPENSIVE, only every 50k
     eff_rank = -1.0
     cond_number = -1.0
     if step % 50000 == 0:
@@ -106,7 +171,7 @@ def run_diagnostic(agent, diag_buf, step, diag_path):
         except Exception:
             pass
 
-    # 4. Q-value magnitude
+    # 6. Q-value magnitude
     q_max = float(np.max(qs_ex))
     q_min = float(np.min(qs_ex))
     q_ensemble_std = float(np.mean(np.std(qs_ex, axis=0)))
@@ -118,18 +183,19 @@ def run_diagnostic(agent, diag_buf, step, diag_path):
         "mean_pairwise_corr": round(mean_corr, 6),
         "max_pairwise_corr": round(max_corr, 6),
         "min_pairwise_corr": round(min_corr, 6),
-        "q_mean_expert": round(q_mean_expert, 2),
-        "q_mean_random": round(q_mean_random, 2),
-        "overestimation": round(overestimation, 2),
+        "q_mean_expert": round(q_mean_expert, 4),
+        "q_mean_random": round(q_mean_random, 4),
+        "overestimation": round(overestimation, 4),
+        "roughness": round(roughness, 6),
+        "mask_var": round(mask_var, 6),
         "eff_rank": round(eff_rank, 2),
         "cond_number": round(cond_number, 2),
-        "q_max": round(q_max, 2),
-        "q_min": round(q_min, 2),
+        "q_max": round(q_max, 4),
+        "q_min": round(q_min, 4),
         "q_ensemble_std": round(q_ensemble_std, 4),
     }
-    # Add per-head means (q_head_0, q_head_1, ...)
     for k in range(min(num_qs, 10)):
-        row["q_head_{}".format(k)] = round(head_means[k], 2)
+        row["q_head_{}".format(k)] = round(head_means[k], 4)
 
     file_exists = os.path.exists(diag_path)
     with open(diag_path, "a", newline="") as f:
@@ -138,10 +204,10 @@ def run_diagnostic(agent, diag_buf, step, diag_path):
             w.writeheader()
         w.writerow(row)
 
-    print("[DIAG {:>7}] nq={} pw_diff={:.3f} pw_corr={:.4f}({:.4f}-{:.4f}) "
-          "Qexp={:.1f} Qrnd={:.1f} overest={:.1f} "
-          "rank={:.1f} qmax={:.1f} qmin={:.1f}".format(
-              step, num_qs, mean_diff, mean_corr, min_corr, max_corr,
+    print("[DIAG {:>7}] nq={} pw_diff={:.3f} pw_corr={:.4f} "
+          "Qexp={:.2f} Qrnd={:.2f} overest={:.2f} "
+          "rough={:.4f} mask_var={:.4f}".format(
+              step, num_qs, mean_diff, mean_corr,
               q_mean_expert, q_mean_random, overestimation,
-              eff_rank, q_max, q_min), flush=True)
+              roughness, mask_var), flush=True)
     return row

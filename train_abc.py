@@ -24,6 +24,7 @@ except Exception:
     pass
 from rlpd.evaluation import evaluate
 from rlpd.wrappers import wrap_gym
+from diagnostic import setup_diag_buffer, compute_roughness_only
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("project_name", "rlpd_abc", "wandb project.")
@@ -138,6 +139,9 @@ def main(_):
         FLAGS.max_steps)
     replay_buffer.seed(FLAGS.seed)
 
+    # Fixed (s, a) buffer for roughness probe (computed every 50k steps).
+    diag_buf = setup_diag_buffer(ds, env)
+
     log_rows = []
     log_path = os.path.join(log_dir, "online_log.csv")
     t_start = time.time()
@@ -236,12 +240,23 @@ def main(_):
 
             elapsed = (time.time() - t_start) / 60.0
 
+            # Roughness probe every 50k steps (cheap: 100 perturbations on 1000 (s,a))
+            roughness = ""
+            if i % 50000 == 0:
+                try:
+                    roughness = round(
+                        compute_roughness_only(agent, diag_buf), 6)
+                    wandb.log({"diag/roughness": roughness}, step=i)
+                except Exception as e:
+                    print("[ROUGHNESS {:>7}] failed: {}".format(i, e),
+                          flush=True)
+
             if (i % (FLAGS.eval_interval * 4) == 0
                     or i < FLAGS.eval_interval * 3):
                 print(
                     "[EVAL {:>7}] score={:.1f} success={:.3f}"
-                    " tag={} elapsed={:.1f}min".format(
-                        i, norm_score, success, tag, elapsed),
+                    " tag={} elapsed={:.1f}min rough={}".format(
+                        i, norm_score, success, tag, elapsed, roughness),
                     flush=True)
 
             for k, v in eval_info.items():
@@ -257,6 +272,7 @@ def main(_):
                 "critic_loss": last_info.get(
                     "critic_loss", 0.0),
                 "mean_q": last_info.get("q", 0.0),
+                "roughness": roughness,
             }
             log_rows.append(row)
 
