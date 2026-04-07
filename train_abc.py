@@ -93,10 +93,18 @@ def main(_):
     kwargs = dict(FLAGS.config)
     kwargs.pop("model_cls")
     nqs = kwargs.get("num_qs", 10)
+    mqs = kwargs.get("num_min_qs", nqs)
     ln = kwargs.get("critic_layer_norm", True)
+    drop = kwargs.get("critic_dropout_rate", None)
+    drop_tag = "drop{}".format(drop) if drop else "nodrop"
 
-    run_name = "{}_nq{}_ln{}_{}_s{}".format(
-        FLAGS.env_name, nqs, ln, tag, FLAGS.seed)
+    # Run name encodes every config that distinguishes runs, so paired runs
+    # in the same SLURM job never overwrite each other's results.
+    parts = [FLAGS.env_name, "nq{}".format(nqs), "mq{}".format(mqs),
+             drop_tag, "s{}".format(FLAGS.seed)]
+    if tag != "baseline":
+        parts.insert(-1, tag)
+    run_name = "_".join(parts)
     log_dir = os.path.join(FLAGS.results_dir, run_name)
     os.makedirs(log_dir, exist_ok=True)
 

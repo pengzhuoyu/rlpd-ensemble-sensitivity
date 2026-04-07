@@ -70,8 +70,11 @@ def main(_):
     nqs = kwargs.get("num_qs", 10)
     ln = kwargs.get("critic_layer_norm", True)
     min_qs = kwargs.get("num_min_qs", 1)
+    drop = kwargs.get("critic_dropout_rate", None)
+    drop_tag = "drop{}".format(drop) if drop else "nodrop"
 
-    tag = "diag_nq{}_mq{}".format(nqs, min_qs)
+    # Run name encodes every config so dropout/no-dropout runs don't collide.
+    tag = "diag_nq{}_mq{}_{}".format(nqs, min_qs, drop_tag)
     run_name = "{}_{}_s{}".format(FLAGS.env_name, tag, FLAGS.seed)
     log_dir = os.path.join(FLAGS.results_dir, run_name)
     os.makedirs(log_dir, exist_ok=True)

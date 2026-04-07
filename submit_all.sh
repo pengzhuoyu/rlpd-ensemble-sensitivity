@@ -71,18 +71,20 @@ done < "$EXPERIMENTS_FILE"
 echo "Parsed experiments.txt: $N_STANDARD standard + $N_DIAG diagnostic = $((N_STANDARD + N_DIAG)) total"
 
 # --- Check if a run already completed (for --retry) ---
+# Matches the directory naming used by train_abc.py / train_diagnostic.py:
+#   {env}_nq{nqs}_mq{minqs}_{drop_tag}_s{seed}     (standard)
+#   {env}_diag_nq{nqs}_mq{minqs}_{drop_tag}_s{seed} (diagnostic)
 already_done() {
   local cfg="$1" diag="$2"
   IFS=',' read -r env seed nqs minqs dropout maxsteps <<< "$cfg"
-  for summary in "$RESULTS_DIR"/*/summary.json; do
-    [ -f "$summary" ] || return 1
-    if grep -q "\"env\": \"$env\"" "$summary" 2>/dev/null &&
-       grep -q "\"seed\": $seed" "$summary" 2>/dev/null &&
-       grep -q "\"nqs\": $nqs" "$summary" 2>/dev/null; then
-      return 0
-    fi
-  done
-  return 1
+  local drop_tag="nodrop"
+  if [ "$dropout" != "0" ] && [ -n "$dropout" ]; then
+    drop_tag="drop${dropout}"
+  fi
+  local prefix=""
+  [ "$diag" = "1" ] && prefix="diag_"
+  local dir="$RESULTS_DIR/${env}_${prefix}nq${nqs}_mq${minqs}_${drop_tag}_s${seed}"
+  [ -f "$dir/summary.json" ]
 }
 
 # --- Submit one job ---

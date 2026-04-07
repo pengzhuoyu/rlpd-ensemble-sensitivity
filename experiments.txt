@@ -1,74 +1,159 @@
-# Experiment run list
+# Experiment run list — generated from tracker_final.csv
 # Format: env,seed,nqs,minqs,dropout,maxsteps
 # Lines starting with # are ignored
 # Prefix with DIAG for diagnostic runs (submitted with DIAG=1)
 
 # ============================================================
-# STANDARD RUNS (40 runs)
+# STANDARD RUNS (131 runs total)
 # ============================================================
 
-# --- pen-binary-v0: ensemble size grid ---
-pen-binary-v0,0,2,1,0,1000000
-pen-binary-v0,0,2,2,0,1000000
-pen-binary-v0,1,2,2,0,1000000
-pen-binary-v0,2,2,2,0,1000000
-pen-binary-v0,3,2,2,0,1000000
-pen-binary-v0,4,2,2,0,1000000
-pen-binary-v0,0,4,1,0,1000000
+# --- rerun (have score, need roughness) ---
 pen-binary-v0,0,4,2,0,1000000
-pen-binary-v0,0,6,1,0,1000000
 pen-binary-v0,0,6,2,0,1000000
-pen-binary-v0,0,10,1,0,1000000
 pen-binary-v0,0,10,2,0,1000000
-pen-binary-v0,1,10,2,0,1000000
-pen-binary-v0,2,10,2,0,1000000
-pen-binary-v0,3,10,2,0,1000000
-pen-binary-v0,4,10,2,0,1000000
-
-# --- pen-binary-v0: dropout sweep ---
-pen-binary-v0,0,2,2,0.005,1000000
-pen-binary-v0,0,2,2,0.01,1000000
-pen-binary-v0,1,2,2,0.01,1000000
-pen-binary-v0,2,2,2,0.01,1000000
-pen-binary-v0,3,2,2,0.01,1000000
-pen-binary-v0,4,2,2,0.01,1000000
-pen-binary-v0,0,2,2,0.02,1000000
-pen-binary-v0,0,2,2,0.05,1000000
-pen-binary-v0,0,2,2,0.1,1000000
-pen-binary-v0,0,2,1,0.01,1000000
-pen-binary-v0,0,10,2,0.01,1000000
 pen-binary-v0,0,4,2,0.01,1000000
 pen-binary-v0,0,6,2,0.01,1000000
+pen-binary-v0,0,10,2,0.01,1000000
+
+# --- standard TODO ---
+# --- pen-binary-v0 ---
+pen-binary-v0,1,2,1,0,1000000
+pen-binary-v0,2,2,1,0,1000000
+pen-binary-v0,3,2,1,0,1000000
+pen-binary-v0,4,2,1,0,1000000
+pen-binary-v0,1,4,2,0,1000000
+pen-binary-v0,2,4,2,0,1000000
+pen-binary-v0,3,4,2,0,1000000
+pen-binary-v0,4,4,2,0,1000000
+pen-binary-v0,1,6,2,0,1000000
+pen-binary-v0,2,6,2,0,1000000
+pen-binary-v0,3,6,2,0,1000000
+pen-binary-v0,4,6,2,0,1000000
+pen-binary-v0,1,2,1,0.01,1000000
+pen-binary-v0,2,2,1,0.01,1000000
+pen-binary-v0,3,2,1,0.01,1000000
+pen-binary-v0,4,2,1,0.01,1000000
+pen-binary-v0,1,4,2,0.01,1000000
+pen-binary-v0,2,4,2,0.01,1000000
+pen-binary-v0,3,4,2,0.01,1000000
+pen-binary-v0,4,4,2,0.01,1000000
+pen-binary-v0,1,6,2,0.01,1000000
+pen-binary-v0,2,6,2,0.01,1000000
+pen-binary-v0,3,6,2,0.01,1000000
+pen-binary-v0,4,6,2,0.01,1000000
+pen-binary-v0,1,10,2,0.01,1000000
+pen-binary-v0,2,10,2,0.01,1000000
+pen-binary-v0,3,10,2,0.01,1000000
+pen-binary-v0,4,10,2,0.01,1000000
+pen-binary-v0,1,2,2,0.005,1000000
+pen-binary-v0,2,2,2,0.005,1000000
+pen-binary-v0,1,2,2,0.02,1000000
+pen-binary-v0,2,2,2,0.02,1000000
+
+# --- halfcheetah-medium-v2 ---
+halfcheetah-medium-v2,0,2,1,0,250000
+halfcheetah-medium-v2,1,2,1,0,250000
+halfcheetah-medium-v2,2,2,1,0,250000
+halfcheetah-medium-v2,3,2,1,0,250000
+halfcheetah-medium-v2,4,2,1,0,250000
+halfcheetah-medium-v2,0,2,2,0,250000
+halfcheetah-medium-v2,1,2,2,0,250000
+halfcheetah-medium-v2,2,2,2,0,250000
+halfcheetah-medium-v2,3,2,2,0,250000
+halfcheetah-medium-v2,4,2,2,0,250000
+halfcheetah-medium-v2,0,4,2,0,250000
+halfcheetah-medium-v2,1,4,2,0,250000
+halfcheetah-medium-v2,2,4,2,0,250000
+halfcheetah-medium-v2,3,4,2,0,250000
+halfcheetah-medium-v2,4,4,2,0,250000
+halfcheetah-medium-v2,0,6,2,0,250000
+halfcheetah-medium-v2,1,6,2,0,250000
+halfcheetah-medium-v2,2,6,2,0,250000
+halfcheetah-medium-v2,3,6,2,0,250000
+halfcheetah-medium-v2,4,6,2,0,250000
+halfcheetah-medium-v2,0,10,2,0,250000
+halfcheetah-medium-v2,1,10,2,0,250000
+halfcheetah-medium-v2,2,10,2,0,250000
+halfcheetah-medium-v2,3,10,2,0,250000
+halfcheetah-medium-v2,4,10,2,0,250000
+halfcheetah-medium-v2,0,2,1,0.01,250000
+halfcheetah-medium-v2,1,2,1,0.01,250000
+halfcheetah-medium-v2,2,2,1,0.01,250000
+halfcheetah-medium-v2,3,2,1,0.01,250000
+halfcheetah-medium-v2,4,2,1,0.01,250000
+halfcheetah-medium-v2,0,2,2,0.01,250000
+halfcheetah-medium-v2,1,2,2,0.01,250000
+halfcheetah-medium-v2,2,2,2,0.01,250000
+halfcheetah-medium-v2,3,2,2,0.01,250000
+halfcheetah-medium-v2,4,2,2,0.01,250000
+halfcheetah-medium-v2,0,4,2,0.01,250000
+halfcheetah-medium-v2,1,4,2,0.01,250000
+halfcheetah-medium-v2,2,4,2,0.01,250000
+halfcheetah-medium-v2,3,4,2,0.01,250000
+halfcheetah-medium-v2,4,4,2,0.01,250000
+halfcheetah-medium-v2,0,6,2,0.01,250000
+halfcheetah-medium-v2,1,6,2,0.01,250000
+halfcheetah-medium-v2,2,6,2,0.01,250000
+halfcheetah-medium-v2,3,6,2,0.01,250000
+halfcheetah-medium-v2,4,6,2,0.01,250000
+halfcheetah-medium-v2,0,10,2,0.01,250000
+halfcheetah-medium-v2,1,10,2,0.01,250000
+halfcheetah-medium-v2,2,10,2,0.01,250000
+halfcheetah-medium-v2,3,10,2,0.01,250000
+halfcheetah-medium-v2,4,10,2,0.01,250000
+halfcheetah-medium-v2,0,2,2,0.005,250000
+halfcheetah-medium-v2,1,2,2,0.005,250000
+halfcheetah-medium-v2,2,2,2,0.005,250000
+halfcheetah-medium-v2,0,2,2,0.02,250000
+halfcheetah-medium-v2,1,2,2,0.02,250000
+halfcheetah-medium-v2,2,2,2,0.02,250000
+halfcheetah-medium-v2,0,2,2,0.05,250000
+halfcheetah-medium-v2,0,2,2,0.1,250000
+
+# --- antmaze-large-diverse-v2 ---
+antmaze-large-diverse-v2,0,2,1,0,300000
+antmaze-large-diverse-v2,1,2,1,0,300000
+antmaze-large-diverse-v2,2,2,1,0,300000
+antmaze-large-diverse-v2,3,2,1,0,300000
+antmaze-large-diverse-v2,4,2,1,0,300000
+antmaze-large-diverse-v2,0,2,2,0,300000
+antmaze-large-diverse-v2,1,2,2,0,300000
+antmaze-large-diverse-v2,2,2,2,0,300000
+antmaze-large-diverse-v2,3,2,2,0,300000
+antmaze-large-diverse-v2,4,2,2,0,300000
+antmaze-large-diverse-v2,0,2,2,0.01,300000
+antmaze-large-diverse-v2,1,2,2,0.01,300000
+antmaze-large-diverse-v2,2,2,2,0.01,300000
+antmaze-large-diverse-v2,3,2,2,0.01,300000
+antmaze-large-diverse-v2,4,2,2,0.01,300000
+antmaze-large-diverse-v2,0,10,1,0,300000
+antmaze-large-diverse-v2,1,10,1,0,300000
+antmaze-large-diverse-v2,2,10,1,0,300000
+antmaze-large-diverse-v2,3,10,1,0,300000
+antmaze-large-diverse-v2,4,10,1,0,300000
+antmaze-large-diverse-v2,0,10,2,0,300000
+antmaze-large-diverse-v2,1,10,2,0,300000
+antmaze-large-diverse-v2,2,10,2,0,300000
+antmaze-large-diverse-v2,3,10,2,0,300000
+antmaze-large-diverse-v2,4,10,2,0,300000
 
 # --- door-binary-v0 ---
 door-binary-v0,0,2,1,0,1000000
 door-binary-v0,0,2,2,0,1000000
-door-binary-v0,0,2,2,0.01,1000000
-door-binary-v0,1,2,2,0.01,1000000
-door-binary-v0,2,2,2,0.01,1000000
-door-binary-v0,0,2,1,0.01,1000000
-door-binary-v0,0,10,1,0,1000000
-door-binary-v0,0,10,2,0,1000000
-door-binary-v0,1,10,2,0,1000000
-door-binary-v0,2,10,2,0,1000000
-door-binary-v0,0,10,2,0.01,1000000
+door-binary-v0,1,2,2,0,1000000
+door-binary-v0,2,2,2,0,1000000
+door-binary-v0,3,2,2,0,1000000
+door-binary-v0,4,2,2,0,1000000
+door-binary-v0,3,2,2,0.01,1000000
+door-binary-v0,4,2,2,0.01,1000000
+door-binary-v0,3,10,2,0,1000000
+door-binary-v0,4,10,2,0,1000000
 
 # ============================================================
-# DIAG RUNS (10 runs — submitted with DIAG=1)
+# DIAG RUNS (4 runs)
 # ============================================================
 
-# --- pen-binary-v0: bias-variance 2x2 ---
-DIAG pen-binary-v0,0,2,1,0,1000000
-DIAG pen-binary-v0,0,2,2,0,1000000
-DIAG pen-binary-v0,0,2,1,0.01,1000000
 DIAG pen-binary-v0,0,2,2,0.01,1000000
-
-# --- pen-binary-v0: roughness across ensemble sizes ---
-DIAG pen-binary-v0,0,4,2,0,1000000
-DIAG pen-binary-v0,0,6,2,0,1000000
-DIAG pen-binary-v0,0,10,2,0,1000000
-
-# --- door-binary-v0: cross-env validation ---
-DIAG door-binary-v0,0,2,1,0,1000000
-DIAG door-binary-v0,0,2,2,0,1000000
-DIAG door-binary-v0,0,2,2,0.01,1000000
+DIAG pen-binary-v0,1,2,2,0.01,1000000
+DIAG pen-binary-v0,2,2,2,0.01,1000000
+DIAG pen-binary-v0,0,2,2,0.02,1000000
