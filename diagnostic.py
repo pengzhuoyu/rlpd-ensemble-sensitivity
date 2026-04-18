@@ -5,8 +5,8 @@ Metrics computed on a fixed buffer of (s, a) pairs:
 - q_mean_expert / q_mean_random / overestimation (OOD gap)
 - Effective rank, condition number (representation quality)
 - Roughness: variance of Q under small action perturbations
-- Grad norm: ||grad_a Qbar|| (verifies perturbation-based sharpness)
-- Grad variation: ||grad_a Qbar(a+eps) - grad_a Qbar(a)|| (curvature signal)
+- Grad norm: ||grad_a Qbar|| on the ensemble-averaged critic
+- Grad variation: change in grad_a Qbar under small action perturbation
 - Mask variance: variance of Q across dropout RNG samples (DroQ-style)
 """
 
@@ -33,19 +33,11 @@ def setup_diag_buffer(ds, env, n=1000, seed=42):
     }
 
 
-def _critic_vars(agent):
-    """Build the variables dict for critic.apply_fn. Handles spec-norm case."""
-    if getattr(agent, "use_spec_norm", False):
-        return {"params": agent.critic.params,
-                "batch_stats": agent.critic.batch_stats}
-    return {"params": agent.critic.params}
-
-
 def _get_qs(agent, obs, actions):
     """Deterministic Q-values for all heads. Used for non-dropout diagnostics."""
     key = jax.random.PRNGKey(0)
     return np.array(agent.critic.apply_fn(
-        _critic_vars(agent), obs, actions, False,
+        {"params": agent.critic.params}, obs, actions, False,
         rngs={"dropout": key}))
 
 
@@ -73,14 +65,13 @@ def _pairwise_stats(qs):
 
 def _compute_rank(agent, obs, act, input_dim):
     """Jacobian-based effective rank. EXPENSIVE -- call sparingly."""
-    vars_ = _critic_vars(agent)
-
     def q_head0(sa):
         o = sa[:input_dim]
         a = sa[input_dim:]
         key = jax.random.PRNGKey(0)
         qs = agent.critic.apply_fn(
-            vars_, o[None], a[None], False,
+            {"params": agent.critic.params},
+            o[None], a[None], False,
             rngs={"dropout": key})
         return qs[0, 0]
 
@@ -100,19 +91,17 @@ def _compute_roughness(agent, obs, act, n_perturb=100, sigma=0.05, seed=42):
     """Roughness of Q surface around (s, a) pairs.
 
     For each (s, a), sample n_perturb actions a' = a + eps, eps ~ N(0, sigma^2).
-    Compute Qbar(s, a') for each, then return mean over states of var over
-    perturbations. Qbar is the ensemble-averaged critic -- this is the
-    landscape the actor's update traverses. Uses training=False (deterministic,
+    Compute Qbar(s, a') for each (mean over heads), then return mean over
+    states of variance over perturbations. Uses training=False (deterministic,
     no dropout) for reproducibility.
     """
-    vars_ = _critic_vars(agent)
     key = jax.random.PRNGKey(seed)
     eps = jax.random.normal(key, (n_perturb,) + act.shape) * sigma
     act_pert = act[None] + eps  # [n_perturb, n_samples, act_dim]
 
     def single(a_batch):
         qs = agent.critic.apply_fn(
-            vars_, obs, a_batch, False,
+            {"params": agent.critic.params}, obs, a_batch, False,
             rngs={"dropout": jax.random.PRNGKey(0)})
         return qs.mean(axis=0)  # mean over heads -> [n_samples]
 
@@ -127,40 +116,40 @@ def _compute_grad_metrics(agent, obs, act, n_perturb=50, sigma=0.05, seed=42):
     Returns (grad_norm, grad_variation):
       grad_norm:      mean over (s,a) of ||grad_a Qbar(s,a)||_2
                       Direct measurement of action-gradient magnitude.
-                      Should scale as sqrt(roughness)/sigma if Taylor expansion holds.
-      grad_variation: mean over (s,a) and eps of ||grad_a Qbar(s,a+eps)
-                                                   - grad_a Qbar(s,a)||_2
-                      Second-order signal: how much the gradient direction
-                      changes across nearby actions. Captures sudden gradient
-                      flips that roughness (zero-th order variance) misses.
+      grad_variation: mean over (s,a,eps) of
+                      ||grad_a Qbar(s,a+eps) - grad_a Qbar(s,a)||_2
+                      How much the gradient field changes under small action
+                      perturbations (curvature-like signal).
 
-    We use n_perturb=50 (fewer than roughness) because each perturbation
-    requires a backward pass -- 10x more expensive than the forward-only
-    roughness computation.
+    Uses n_perturb=50 (half of roughness) because each perturbation requires
+    a vmapped backward pass. Uses training=False -- no dropout.
+
+    Implementation note: we define a scalar loss = sum over batch of Qbar.
+    Because grad of a sum equals the sum of per-element grads (and each
+    per-element Qbar depends only on its own row of the action batch), a
+    single grad_a of this scalar returns the per-sample action gradient
+    stacked along the batch axis. This avoids inner vmap over samples.
     """
-    vars_ = _critic_vars(agent)
-
-    def q_mean_scalar(a_single, o_single):
-        # One (s, a) -> scalar Qbar for grad_a to work against.
+    def q_mean_sum(act_batch, obs_batch):
         qs = agent.critic.apply_fn(
-            vars_, o_single[None], a_single[None], False,
+            {"params": agent.critic.params},
+            obs_batch, act_batch, False,
             rngs={"dropout": jax.random.PRNGKey(0)})
-        return qs.mean()  # mean over heads
+        # qs: [num_qs, n_samples]; Qbar per sample = qs.mean(axis=0)
+        return qs.mean(axis=0).sum()
 
-    # grad_a Qbar for a batch of (s, a).
-    grad_fn = jax.vmap(jax.grad(q_mean_scalar, argnums=0), in_axes=(0, 0))
+    grad_fn = jax.grad(q_mean_sum, argnums=0)  # -> [n_samples, act_dim]
 
-    # Gradient at the original (s, a).
-    grad_a = grad_fn(act, obs)  # [n_samples, act_dim]
+    grad_a = grad_fn(act, obs)
     grad_norm = float(jnp.linalg.norm(grad_a, axis=-1).mean())
 
-    # Gradient variation: for K perturbations, compute the gradient at each
-    # perturbed action and measure the L2 change from the original gradient.
+    # Perturb actions; compute gradient at each perturbation; measure
+    # L2 distance from unperturbed gradient.
     key = jax.random.PRNGKey(seed)
     eps_all = jax.random.normal(key, (n_perturb,) + act.shape) * sigma
 
     def one_pert(eps_k):
-        grad_p = grad_fn(act + eps_k, obs)  # [n_samples, act_dim]
+        grad_p = grad_fn(act + eps_k, obs)
         return jnp.linalg.norm(grad_p - grad_a, axis=-1)  # [n_samples]
 
     diffs = jax.vmap(one_pert)(eps_all)  # [n_perturb, n_samples]
@@ -174,12 +163,11 @@ def _compute_mask_var(agent, obs, act, n_samples=10, seed=123):
     Measures the implicit-ensemble diversity from DroQ-style dropout.
     Returns 0 for runs without dropout (deterministic forward pass).
     """
-    vars_ = _critic_vars(agent)
     keys = jax.random.split(jax.random.PRNGKey(seed), n_samples)
 
     def single(k):
         qs = agent.critic.apply_fn(
-            vars_, obs, act, True,
+            {"params": agent.critic.params}, obs, act, True,
             rngs={"dropout": k})
         return qs.mean(axis=0)  # mean over heads -> [n_obs]
 
@@ -188,16 +176,22 @@ def _compute_mask_var(agent, obs, act, n_samples=10, seed=123):
 
 
 def compute_roughness_only(agent, diag_buf):
-    """Lightweight roughness computation for use by train_abc.py."""
+    """Lightweight roughness computation for use by train_abc.py.
+
+    Back-compat shim: existing callers that only need roughness can keep
+    using this. New callers should use compute_sharpness_bundle below to
+    get roughness + grad_norm + grad_variation in one call.
+    """
     return _compute_roughness(agent, diag_buf["obs"], diag_buf["act_expert"])
 
 
 def compute_sharpness_bundle(agent, diag_buf):
-    """Roughness + grad_norm + grad_variation, for train_abc.py's 50k-step log.
+    """Roughness + grad_norm + grad_variation for the 50k-step probe.
 
-    Returns a dict. Grad metrics are ~3x the cost of roughness alone; if this
-    is too slow for standard runs, call compute_roughness_only instead and
-    reserve this bundle for DIAG runs.
+    Grad metrics add ~2-3x the cost of roughness alone but remain cheap
+    relative to the training step. Returns a dict; each key defaults to
+    -1.0 on failure so the caller can safely round() each value without
+    special-casing.
     """
     obs = diag_buf["obs"]
     act = diag_buf["act_expert"]
@@ -233,7 +227,7 @@ def run_diagnostic(agent, diag_buf, step, diag_path):
     q_mean_random = float(np.mean(qs_rnd))
     overestimation = q_mean_random - q_mean_expert
 
-    # 3. Roughness -- variance under action perturbation (every diag step)
+    # 3. Roughness -- variance under action perturbation
     try:
         roughness = _compute_roughness(agent, obs, act_ex)
     except Exception:
@@ -245,7 +239,7 @@ def run_diagnostic(agent, diag_buf, step, diag_path):
     except Exception:
         grad_norm, grad_variation = -1.0, -1.0
 
-    # 5. Mask variance -- variance under dropout RNG sampling (every diag step)
+    # 5. Mask variance -- variance under dropout RNG sampling
     try:
         mask_var = _compute_mask_var(agent, obs, act_ex)
     except Exception:
