@@ -8,6 +8,10 @@ Metrics computed on a fixed buffer of (s, a) pairs:
 - Grad norm: ||grad_a Qbar|| on the ensemble-averaged critic
 - Grad variation: change in grad_a Qbar under small action perturbation
 - Mask variance: variance of Q across dropout RNG samples (DroQ-style)
+- Head residual variance: Var_i[Qi(s,a)] relative to ensemble mean
+- Gradient residual variance: Var_i[grad_a Qi(s,a)] across heads
+- Gradient sharpness: squared action-gradient norm of single-head vs ensemble Q
+- Smoothing gain: single-head sharpness minus ensemble sharpness
 """
 
 import csv
@@ -17,6 +21,16 @@ import numpy as np
 import jax
 import jax.numpy as jnp
 from itertools import combinations
+
+
+def _critic_variables(agent):
+    """Variables dict for critic.apply_fn, including spectral-norm stats."""
+    if getattr(agent, "use_spec_norm", False):
+        return {
+            "params": agent.critic.params,
+            "batch_stats": agent.critic.batch_stats,
+        }
+    return {"params": agent.critic.params}
 
 
 def setup_diag_buffer(ds, env, n=1000, seed=42):
@@ -37,7 +51,7 @@ def _get_qs(agent, obs, actions):
     """Deterministic Q-values for all heads. Used for non-dropout diagnostics."""
     key = jax.random.PRNGKey(0)
     return np.array(agent.critic.apply_fn(
-        {"params": agent.critic.params}, obs, actions, False,
+        _critic_variables(agent), obs, actions, False,
         rngs={"dropout": key}))
 
 
@@ -63,6 +77,66 @@ def _pairwise_stats(qs):
     return mean_diff, mean_corr, max_corr, min_corr, std_diff
 
 
+def _compute_head_var(qs):
+    """Mean over samples of Var_i[Qi(s,a)].
+
+    This implements the operational decomposition Q_i = Qbar + delta_i:
+    head_var = E_{(s,a)}[mean_i delta_i(s,a)^2].
+    """
+    return float(np.mean(np.var(qs, axis=0)))
+
+
+def _compute_head_grad_metrics(agent, obs, act):
+    """Action-gradient metrics for all critic heads.
+
+    Returns a dict with:
+      grad_var:
+        E_s[mean_i ||grad_a Qi - mean_j grad_a Qj||^2].
+      single_head_grad_sharpness:
+        E_s[mean_i ||grad_a Qi||^2].
+      ensemble_grad_sharpness:
+        E_s[||mean_i grad_a Qi||^2].
+
+    The final two are the small-perturbation counterparts of
+    sharpness_single and sharpness_ens, since Var_eps[Q(a+eps)] is
+    approximately sigma^2 ||grad_a Q||^2 for small isotropic eps.
+    """
+    num_qs = agent.num_qs
+
+    def q_head_sums(act_batch, obs_batch):
+        qs = agent.critic.apply_fn(
+            _critic_variables(agent),
+            obs_batch, act_batch, False,
+            rngs={"dropout": jax.random.PRNGKey(0)})
+        # One scalar per head. jacrev gives per-head action gradients.
+        return qs.sum(axis=1)
+
+    grads = jax.jacrev(q_head_sums, argnums=0)(act, obs)
+    grads = grads[:num_qs]  # [num_qs, n_samples, act_dim]
+    grad_mean = grads.mean(axis=0, keepdims=True)
+    grad_var = jnp.sum((grads - grad_mean) ** 2, axis=-1).mean()
+    single_head_grad_sharpness = jnp.sum(grads ** 2, axis=-1).mean()
+    ensemble_grad_sharpness = jnp.sum(
+        jnp.squeeze(grad_mean, axis=0) ** 2, axis=-1).mean()
+    grad_smooth_gain = (
+        single_head_grad_sharpness - ensemble_grad_sharpness)
+    grad_smooth_ratio = (
+        single_head_grad_sharpness
+        / jnp.maximum(ensemble_grad_sharpness, 1e-12))
+    return {
+        "grad_var": float(grad_var),
+        "single_head_grad_sharpness": float(single_head_grad_sharpness),
+        "ensemble_grad_sharpness": float(ensemble_grad_sharpness),
+        "grad_smooth_gain": float(grad_smooth_gain),
+        "grad_smooth_ratio": float(grad_smooth_ratio),
+    }
+
+
+def _compute_grad_var(agent, obs, act):
+    """Back-compat wrapper for the cross-head gradient variance."""
+    return _compute_head_grad_metrics(agent, obs, act)["grad_var"]
+
+
 def _compute_rank(agent, obs, act, input_dim):
     """Jacobian-based effective rank. EXPENSIVE -- call sparingly."""
     def q_head0(sa):
@@ -70,7 +144,7 @@ def _compute_rank(agent, obs, act, input_dim):
         a = sa[input_dim:]
         key = jax.random.PRNGKey(0)
         qs = agent.critic.apply_fn(
-            {"params": agent.critic.params},
+            _critic_variables(agent),
             o[None], a[None], False,
             rngs={"dropout": key})
         return qs[0, 0]
@@ -101,13 +175,44 @@ def _compute_roughness(agent, obs, act, n_perturb=100, sigma=0.05, seed=42):
 
     def single(a_batch):
         qs = agent.critic.apply_fn(
-            {"params": agent.critic.params}, obs, a_batch, False,
+            _critic_variables(agent), obs, a_batch, False,
             rngs={"dropout": jax.random.PRNGKey(0)})
         return qs.mean(axis=0)  # mean over heads -> [n_samples]
 
     q_perturb = jax.vmap(single)(act_pert)  # [n_perturb, n_samples]
     var_per_state = np.array(q_perturb).var(axis=0)  # [n_samples]
     return float(var_per_state.mean())
+
+
+def _compute_smoothing_metrics(
+        agent, obs, act, n_perturb=100, sigma=0.05, seed=42):
+    """Single-head vs ensemble sharpness under shared perturbations.
+
+    Returns:
+      sharpness_single: mean_i E_s Var_eps[Qi(s, a + eps)]
+      sharpness_ens:    E_s Var_eps[mean_i Qi(s, a + eps)]
+      smooth_gain:      sharpness_single - sharpness_ens
+      smooth_ratio:     sharpness_single / sharpness_ens
+    """
+    key = jax.random.PRNGKey(seed)
+    eps = jax.random.normal(key, (n_perturb,) + act.shape) * sigma
+    act_pert = act[None] + eps  # [n_perturb, n_samples, act_dim]
+
+    def single(a_batch):
+        return agent.critic.apply_fn(
+            _critic_variables(agent), obs, a_batch, False,
+            rngs={"dropout": jax.random.PRNGKey(0)})
+
+    q_perturb = jax.vmap(single)(act_pert)
+    # [n_perturb, num_qs, n_samples]
+    per_head_var = jnp.var(q_perturb, axis=0)
+    sharpness_single = float(per_head_var.mean())
+
+    q_ens = q_perturb.mean(axis=1)  # [n_perturb, n_samples]
+    sharpness_ens = float(jnp.var(q_ens, axis=0).mean())
+    smooth_gain = sharpness_single - sharpness_ens
+    smooth_ratio = sharpness_single / max(sharpness_ens, 1e-12)
+    return sharpness_single, sharpness_ens, smooth_gain, smooth_ratio
 
 
 def _compute_grad_metrics(agent, obs, act, n_perturb=50, sigma=0.05, seed=42):
@@ -132,7 +237,7 @@ def _compute_grad_metrics(agent, obs, act, n_perturb=50, sigma=0.05, seed=42):
     """
     def q_mean_sum(act_batch, obs_batch):
         qs = agent.critic.apply_fn(
-            {"params": agent.critic.params},
+            _critic_variables(agent),
             obs_batch, act_batch, False,
             rngs={"dropout": jax.random.PRNGKey(0)})
         # qs: [num_qs, n_samples]; Qbar per sample = qs.mean(axis=0)
@@ -167,7 +272,7 @@ def _compute_mask_var(agent, obs, act, n_samples=10, seed=123):
 
     def single(k):
         qs = agent.critic.apply_fn(
-            {"params": agent.critic.params}, obs, act, True,
+            _critic_variables(agent), obs, act, True,
             rngs={"dropout": k})
         return qs.mean(axis=0)  # mean over heads -> [n_obs]
 
@@ -196,15 +301,39 @@ def compute_sharpness_bundle(agent, diag_buf):
     obs = diag_buf["obs"]
     act = diag_buf["act_expert"]
     try:
-        roughness = _compute_roughness(agent, obs, act)
+        qs = _get_qs(agent, obs, act)
+        head_var = _compute_head_var(qs)
     except Exception:
+        head_var = -1.0
+    try:
+        (sharpness_single, roughness, smooth_gain,
+         smooth_ratio) = _compute_smoothing_metrics(agent, obs, act)
+    except Exception:
+        sharpness_single = -1.0
         roughness = -1.0
+        smooth_gain = -1.0
+        smooth_ratio = -1.0
     try:
         grad_norm, grad_variation = _compute_grad_metrics(agent, obs, act)
     except Exception:
         grad_norm, grad_variation = -1.0, -1.0
+    try:
+        head_grad_metrics = _compute_head_grad_metrics(agent, obs, act)
+    except Exception:
+        head_grad_metrics = {
+            "grad_var": -1.0,
+            "single_head_grad_sharpness": -1.0,
+            "ensemble_grad_sharpness": -1.0,
+            "grad_smooth_gain": -1.0,
+            "grad_smooth_ratio": -1.0,
+        }
     return {
+        "head_var": head_var,
+        **head_grad_metrics,
         "roughness": roughness,
+        "sharpness_single": sharpness_single,
+        "smooth_gain": smooth_gain,
+        "smooth_ratio": smooth_ratio,
         "grad_norm": grad_norm,
         "grad_variation": grad_variation,
     }
@@ -221,23 +350,40 @@ def run_diagnostic(agent, diag_buf, step, diag_path):
     mean_diff, mean_corr, max_corr, min_corr, std_diff = _pairwise_stats(qs_ex)
     head_means = [float(np.mean(qs_ex[k])) for k in range(num_qs)]
     q_mean_expert = float(np.mean(qs_ex))
+    head_var = _compute_head_var(qs_ex)
 
     # 2. OOD overestimation
     qs_rnd = _get_qs(agent, obs, act_rnd)
     q_mean_random = float(np.mean(qs_rnd))
     overestimation = q_mean_random - q_mean_expert
 
-    # 3. Roughness -- variance under action perturbation
+    # 3. Smoothing metrics -- single-head vs ensemble sharpness
     try:
-        roughness = _compute_roughness(agent, obs, act_ex)
+        (sharpness_single, roughness, smooth_gain,
+         smooth_ratio) = _compute_smoothing_metrics(agent, obs, act_ex)
     except Exception:
+        sharpness_single = -1.0
         roughness = -1.0
+        smooth_gain = -1.0
+        smooth_ratio = -1.0
 
     # 4. Gradient metrics -- direct ||grad_a Qbar|| and its variation
     try:
         grad_norm, grad_variation = _compute_grad_metrics(agent, obs, act_ex)
     except Exception:
         grad_norm, grad_variation = -1.0, -1.0
+
+    # 4b. Gradient residual variance across heads
+    try:
+        head_grad_metrics = _compute_head_grad_metrics(agent, obs, act_ex)
+    except Exception:
+        head_grad_metrics = {
+            "grad_var": -1.0,
+            "single_head_grad_sharpness": -1.0,
+            "ensemble_grad_sharpness": -1.0,
+            "grad_smooth_gain": -1.0,
+            "grad_smooth_ratio": -1.0,
+        }
 
     # 5. Mask variance -- variance under dropout RNG sampling
     try:
@@ -271,7 +417,21 @@ def run_diagnostic(agent, diag_buf, step, diag_path):
         "q_mean_expert": round(q_mean_expert, 4),
         "q_mean_random": round(q_mean_random, 4),
         "overestimation": round(overestimation, 4),
+        "head_var": round(head_var, 6),
+        "grad_var": round(head_grad_metrics["grad_var"], 6),
+        "single_head_grad_sharpness": round(
+            head_grad_metrics["single_head_grad_sharpness"], 6),
+        "ensemble_grad_sharpness": round(
+            head_grad_metrics["ensemble_grad_sharpness"], 6),
+        "grad_smooth_gain": round(
+            head_grad_metrics["grad_smooth_gain"], 6),
+        "grad_smooth_ratio": round(
+            head_grad_metrics["grad_smooth_ratio"], 6),
         "roughness": round(roughness, 6),
+        "sharpness_single": round(sharpness_single, 6),
+        "sharpness_ens": round(roughness, 6),
+        "smooth_gain": round(smooth_gain, 6),
+        "smooth_ratio": round(smooth_ratio, 6),
         "grad_norm": round(grad_norm, 6),
         "grad_variation": round(grad_variation, 6),
         "mask_var": round(mask_var, 6),
@@ -293,9 +453,13 @@ def run_diagnostic(agent, diag_buf, step, diag_path):
 
     print("[DIAG {:>7}] nq={} pw_diff={:.3f} pw_corr={:.4f} "
           "Qexp={:.2f} Qrnd={:.2f} overest={:.2f} "
-          "rough={:.4f} |gradQ|={:.4f} dgradQ={:.4f} mask_var={:.4f}".format(
+          "rough={:.4f} singleS={:.4f} gain={:.4f} "
+          "head_var={:.4f} grad_var={:.4f} "
+          "|gradQ|={:.4f} dgradQ={:.4f} mask_var={:.4f}".format(
               step, num_qs, mean_diff, mean_corr,
               q_mean_expert, q_mean_random, overestimation,
-              roughness, grad_norm, grad_variation, mask_var), flush=True)
+              roughness, sharpness_single, smooth_gain,
+              head_var, head_grad_metrics["grad_var"],
+              grad_norm, grad_variation, mask_var), flush=True)
 
     return row

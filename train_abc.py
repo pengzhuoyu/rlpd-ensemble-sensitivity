@@ -110,11 +110,13 @@ def main(_):
     ln = kwargs.get("critic_layer_norm", True)
     drop = kwargs.get("critic_dropout_rate", None)
     drop_tag = "drop{}".format(drop) if drop else "nodrop"
+    spec = kwargs.get("spec_norm_coef", None)
+    spec_tag = "sn{}".format(spec) if spec is not None else "nosn"
 
     # Run name encodes every config that distinguishes runs, so paired runs
     # in the same SLURM job never overwrite each other's results.
     parts = [FLAGS.env_name, "nq{}".format(nqs), "mq{}".format(mqs),
-             drop_tag, "s{}".format(FLAGS.seed)]
+             drop_tag, spec_tag, "s{}".format(FLAGS.seed)]
     if tag != "baseline":
         parts.insert(-1, tag)
     run_name = "_".join(parts)
@@ -127,6 +129,7 @@ def main(_):
     print("RLPD A/B/C Experiment")
     print("Env: {} | Seed: {} | nq={} ln={}".format(
         FLAGS.env_name, FLAGS.seed, nqs, ln))
+    print("Dropout={} | SpectralNorm={}".format(drop, spec))
     print("A(bmask)={} B(indep)={} C(reset)={}".format(
         FLAGS.bootstrap_mask, FLAGS.independent_targets,
         FLAGS.critic_reset_step))
@@ -262,16 +265,50 @@ def main(_):
                 # (change in gradient under perturbation). Total cost ~3x
                 # roughness-alone; still cheap relative to training.
                 roughness = ""
+                sharpness_single = ""
+                smooth_gain = ""
+                smooth_ratio = ""
+                head_var = ""
+                grad_var = ""
+                single_head_grad_sharpness = ""
+                ensemble_grad_sharpness = ""
+                grad_smooth_gain = ""
+                grad_smooth_ratio = ""
                 grad_norm = ""
                 grad_variation = ""
                 if i % 50000 == 0:
                     try:
                         bundle = compute_sharpness_bundle(agent, diag_buf)
+                        head_var = round(bundle["head_var"], 6)
+                        grad_var = round(bundle["grad_var"], 6)
+                        single_head_grad_sharpness = round(
+                            bundle["single_head_grad_sharpness"], 6)
+                        ensemble_grad_sharpness = round(
+                            bundle["ensemble_grad_sharpness"], 6)
+                        grad_smooth_gain = round(
+                            bundle["grad_smooth_gain"], 6)
+                        grad_smooth_ratio = round(
+                            bundle["grad_smooth_ratio"], 6)
                         roughness = round(bundle["roughness"], 6)
+                        sharpness_single = round(
+                            bundle["sharpness_single"], 6)
+                        smooth_gain = round(bundle["smooth_gain"], 6)
+                        smooth_ratio = round(bundle["smooth_ratio"], 6)
                         grad_norm = round(bundle["grad_norm"], 6)
                         grad_variation = round(bundle["grad_variation"], 6)
                         wandb.log({
+                            "diag/head_var": head_var,
+                            "diag/grad_var": grad_var,
+                            "diag/single_head_grad_sharpness":
+                                single_head_grad_sharpness,
+                            "diag/ensemble_grad_sharpness":
+                                ensemble_grad_sharpness,
+                            "diag/grad_smooth_gain": grad_smooth_gain,
+                            "diag/grad_smooth_ratio": grad_smooth_ratio,
                             "diag/roughness": roughness,
+                            "diag/sharpness_single": sharpness_single,
+                            "diag/smooth_gain": smooth_gain,
+                            "diag/smooth_ratio": smooth_ratio,
                             "diag/grad_norm": grad_norm,
                             "diag/grad_variation": grad_variation,
                         }, step=i)
@@ -284,9 +321,12 @@ def main(_):
                     print(
                         "[EVAL {:>7}] score={:.1f} success={:.3f}"
                         " tag={} elapsed={:.1f}min"
-                        " rough={} |gradQ|={} dgradQ={}".format(
+                        " rough={} gain={} head_var={} grad_var={}"
+                        " gradS={} |gradQ|={} dgradQ={}".format(
                             i, norm_score, success, tag, elapsed,
-                            roughness, grad_norm, grad_variation),
+                            roughness, smooth_gain, head_var, grad_var,
+                            ensemble_grad_sharpness,
+                            grad_norm, grad_variation),
                         flush=True)
 
                 for k, v in eval_info.items():
@@ -302,7 +342,17 @@ def main(_):
                     "critic_loss": last_info.get(
                         "critic_loss", 0.0),
                     "mean_q": last_info.get("q", 0.0),
+                    "head_var": head_var,
+                    "grad_var": grad_var,
+                    "single_head_grad_sharpness":
+                        single_head_grad_sharpness,
+                    "ensemble_grad_sharpness": ensemble_grad_sharpness,
+                    "grad_smooth_gain": grad_smooth_gain,
+                    "grad_smooth_ratio": grad_smooth_ratio,
                     "roughness": roughness,
+                    "sharpness_single": sharpness_single,
+                    "smooth_gain": smooth_gain,
+                    "smooth_ratio": smooth_ratio,
                     "grad_norm": grad_norm,
                     "grad_variation": grad_variation,
                 }
@@ -322,6 +372,7 @@ def main(_):
             "tag": tag,
             "nqs": nqs,
             "ln": ln,
+            "spec_norm_coef": spec,
             "bootstrap_mask": FLAGS.bootstrap_mask,
             "independent_targets": FLAGS.independent_targets,
             "critic_reset_step": FLAGS.critic_reset_step,

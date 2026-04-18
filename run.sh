@@ -68,16 +68,20 @@ fi
 
 IFS='|' read -ra RUNS <<< "$EXPERIMENTS"
 for run in "${RUNS[@]}"; do
-  IFS=',' read -r env seed nqs minqs dropout maxsteps <<< "$run"
+  IFS=',' read -r env seed nqs minqs dropout maxsteps specnorm <<< "$run"
 
   DROP_FLAG=""
   if [ "$dropout" != "0" ] && [ -n "$dropout" ]; then
     DROP_FLAG="--config.critic_dropout_rate=$dropout"
   fi
+  SPEC_FLAG=""
+  if [ "$specnorm" != "0" ] && [ -n "$specnorm" ]; then
+    SPEC_FLAG="--config.spec_norm_coef=$specnorm"
+  fi
 
   echo ""
   echo "=========================================="
-  echo "RUN: env=$env seed=$seed nq=$nqs mq=$minqs drop=$dropout steps=$maxsteps diag=${DIAG:-0} — $(date)"
+  echo "RUN: env=$env seed=$seed nq=$nqs mq=$minqs drop=$dropout specnorm=${specnorm:-0} steps=$maxsteps diag=${DIAG:-0} — $(date)"
   echo "=========================================="
 
   python "$TRAIN_SCRIPT" \
@@ -90,6 +94,7 @@ for run in "${RUNS[@]}"; do
     --config.num_qs="$nqs" \
     --config.critic_layer_norm=True \
     $DROP_FLAG \
+    $SPEC_FLAG \
     --bootstrap_mask=False \
     --independent_targets=False \
     --critic_reset_step=0 \

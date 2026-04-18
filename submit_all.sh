@@ -72,18 +72,22 @@ echo "Parsed experiments.txt: $N_STANDARD standard + $N_DIAG diagnostic = $((N_S
 
 # --- Check if a run already completed (for --retry) ---
 # Matches the directory naming used by train_abc.py / train_diagnostic.py:
-#   {env}_nq{nqs}_mq{minqs}_{drop_tag}_s{seed}     (standard)
-#   {env}_diag_nq{nqs}_mq{minqs}_{drop_tag}_s{seed} (diagnostic)
+#   {env}_nq{nqs}_mq{minqs}_{drop_tag}_{spec_tag}_s{seed}     (standard)
+#   {env}_diag_nq{nqs}_mq{minqs}_{drop_tag}_{spec_tag}_s{seed} (diagnostic)
 already_done() {
   local cfg="$1" diag="$2"
-  IFS=',' read -r env seed nqs minqs dropout maxsteps <<< "$cfg"
+  IFS=',' read -r env seed nqs minqs dropout maxsteps specnorm <<< "$cfg"
   local drop_tag="nodrop"
   if [ "$dropout" != "0" ] && [ -n "$dropout" ]; then
     drop_tag="drop${dropout}"
   fi
+  local spec_tag="nosn"
+  if [ "$specnorm" != "0" ] && [ -n "$specnorm" ]; then
+    spec_tag="sn${specnorm}"
+  fi
   local prefix=""
   [ "$diag" = "1" ] && prefix="diag_"
-  local dir="$RESULTS_DIR/${env}_${prefix}nq${nqs}_mq${minqs}_${drop_tag}_s${seed}"
+  local dir="$RESULTS_DIR/${env}_${prefix}nq${nqs}_mq${minqs}_${drop_tag}_${spec_tag}_s${seed}"
   [ -f "$dir/summary.json" ]
 }
 
@@ -128,14 +132,14 @@ pair_runs() {
   while [ "$i" -le "$n" ]; do
     grep -q "^${i}$" "$used_file" 2>/dev/null && { i=$((i+1)); continue; }
     local run_i; run_i=$(sed -n "${i}p" "$runs_file")
-    local env_i nqs_i; IFS=',' read -r env_i _ nqs_i _ _ _ <<< "$run_i"
+    local env_i nqs_i; IFS=',' read -r env_i _ nqs_i _ _ _ _ <<< "$run_i"
     local best=0 best_same_env=false
 
     local j=$((i+1))
     while [ "$j" -le "$n" ]; do
       grep -q "^${j}$" "$used_file" 2>/dev/null && { j=$((j+1)); continue; }
       local run_j; run_j=$(sed -n "${j}p" "$runs_file")
-      local env_j nqs_j; IFS=',' read -r env_j _ nqs_j _ _ _ <<< "$run_j"
+      local env_j nqs_j; IFS=',' read -r env_j _ nqs_j _ _ _ _ <<< "$run_j"
       if [ "$nqs_i" = "$nqs_j" ]; then
         [ "$best" = "0" ] && best=$j
         [ "$env_i" = "$env_j" ] && [ "$best_same_env" = false ] && { best=$j; best_same_env=true; }

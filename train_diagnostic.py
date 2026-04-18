@@ -72,9 +72,11 @@ def main(_):
     min_qs = kwargs.get("num_min_qs", 1)
     drop = kwargs.get("critic_dropout_rate", None)
     drop_tag = "drop{}".format(drop) if drop else "nodrop"
+    spec = kwargs.get("spec_norm_coef", None)
+    spec_tag = "sn{}".format(spec) if spec is not None else "nosn"
 
     # Run name encodes every config so dropout/no-dropout runs don't collide.
-    tag = "diag_nq{}_mq{}_{}".format(nqs, min_qs, drop_tag)
+    tag = "diag_nq{}_mq{}_{}_{}".format(nqs, min_qs, drop_tag, spec_tag)
     run_name = "{}_{}_s{}".format(FLAGS.env_name, tag, FLAGS.seed)
     log_dir = os.path.join(FLAGS.results_dir, run_name)
     os.makedirs(log_dir, exist_ok=True)
@@ -89,6 +91,7 @@ def main(_):
     print("RLPD DIAGNOSTIC RUN")
     print("Env: {} | nq={} min_qs={} ln={} seed={}".format(
         FLAGS.env_name, nqs, min_qs, ln, FLAGS.seed))
+    print("Dropout={} | SpectralNorm={}".format(drop, spec))
     print("Tag: {} | Dir: {}".format(tag, log_dir))
     print("=" * 60)
     print("", flush=True)
@@ -213,6 +216,7 @@ def main(_):
         n_final = min(10, len(scores))
         summary = {"env": FLAGS.env_name, "seed": FLAGS.seed,
                    "nqs": nqs, "num_min_qs": min_qs,
+                   "spec_norm_coef": spec,
                    "final_score": float(np.mean(scores[-n_final:])),
                    "peak_score": float(np.max(scores)),
                    "wall_hours": round((time.time() - t_start) / 3600, 2)}

@@ -90,6 +90,21 @@ bash check_progress.sh         # queue + results + errors
 bash check_progress.sh --short # just counts
 ```
 
+## Spectral Norm Switch
+
+Spectral norm is controlled by `config.spec_norm_coef`. In
+`experiments.txt`, use the optional seventh column:
+
+```text
+# env,seed,nqs,minqs,dropout,maxsteps,spec_norm_coef
+halfcheetah-medium-v2,0,2,2,0,250000,0      # off
+halfcheetah-medium-v2,0,2,2,0,250000,1.0    # on, per-layer coef = 1.0
+```
+
+Leaving the seventh column blank keeps the old behavior. Run directories
+include `nosn` or `sn<coef>` so spectral-norm and non-spectral-norm runs do
+not overwrite each other.
+
 ## Results
 
 Each run writes to `results/<run_name>/`:
@@ -99,6 +114,21 @@ Each run writes to `results/<run_name>/`:
 | `online_log.csv` | Eval scores at every checkpoint |
 | `summary.json` | Final score, peak score, wall time |
 | `diagnostic.csv` | (DIAG only) Per-head Q-values, pairwise correlation, OOD overestimation, effective rank |
+
+New smoothing diagnostics:
+
+| Column | Meaning |
+|--------|---------|
+| `head_var` | Mean over diagnostic points of `Var_i[Q_i(s,a)]` |
+| `grad_var` | Mean over diagnostic points of cross-head action-gradient variance |
+| `sharpness_single` | Mean single-head perturbation sharpness |
+| `sharpness_ens` / `roughness` | Ensemble-mean perturbation sharpness |
+| `smooth_gain` | `sharpness_single - sharpness_ens` |
+| `smooth_ratio` | `sharpness_single / sharpness_ens` |
+| `single_head_grad_sharpness` | Mean over heads and diagnostic points of `||grad_a Q_i||^2` |
+| `ensemble_grad_sharpness` | Mean over diagnostic points of `||grad_a mean_i Q_i||^2` |
+| `grad_smooth_gain` | `single_head_grad_sharpness - ensemble_grad_sharpness` |
+| `grad_smooth_ratio` | `single_head_grad_sharpness / ensemble_grad_sharpness` |
 
 ## Repo structure
 

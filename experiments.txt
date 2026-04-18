@@ -1,5 +1,6 @@
 # Experiment run list — generated from tracker_final.csv
-# Format: env,seed,nqs,minqs,dropout,maxsteps
+# Format: env,seed,nqs,minqs,dropout,maxsteps,spec_norm_coef
+# spec_norm_coef is optional; omit it or set 0 to disable spectral norm.
 # Lines starting with # are ignored
 # Prefix with DIAG for diagnostic runs (submitted with DIAG=1)
 
