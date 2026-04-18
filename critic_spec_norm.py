@@ -45,10 +45,14 @@ class SpectralDense(nn.Module):
     kernel_init: Callable = default_init()
 
     @nn.compact
-    def __call__(self, x: jnp.ndarray, train: bool = True) -> jnp.ndarray:
+    def __call__(
+        self,
+        x: jnp.ndarray,
+        update_stats: bool = True,
+    ) -> jnp.ndarray:
         dense = nn.Dense(features=self.features, kernel_init=self.kernel_init)
         dense = nn.SpectralNorm(dense)
-        y = dense(x, update_stats=train)
+        y = dense(x, update_stats=update_stats)
         return self.coef * y
 
 
@@ -76,12 +80,15 @@ class StateActionValueSpecNorm(nn.Module):
         observations: jnp.ndarray,
         actions: jnp.ndarray,
         training: bool = False,
+        update_stats: bool = False,
     ) -> jnp.ndarray:
         x = jnp.concatenate([observations, actions], axis=-1)
 
         for size in self.hidden_dims:
-            x = SpectralDense(features=size, coef=self.spec_norm_coef)(
-                x, train=training)
+            dense = SpectralDense(
+                features=size,
+                coef=self.spec_norm_coef)
+            x = dense(x, update_stats=update_stats)
             if self.dropout_rate is not None and self.dropout_rate > 0.0:
                 x = nn.Dropout(rate=self.dropout_rate)(
                     x, deterministic=not training)
@@ -90,5 +97,8 @@ class StateActionValueSpecNorm(nn.Module):
             x = self.activations(x)
 
         # Scalar head (also spec-normed).
-        q = SpectralDense(features=1, coef=self.spec_norm_coef)(x, train=training)
+        head = SpectralDense(
+            features=1,
+            coef=self.spec_norm_coef)
+        q = head(x, update_stats=update_stats)
         return jnp.squeeze(q, -1)

@@ -172,9 +172,14 @@ class SACLearnerV2(Agent):
 
     # Helper: build the variables dict for critic.apply_fn. When spec norm is
     # off, batch_stats is empty and behaves like the original code.
-    def _critic_vars(self, params, is_target=False):
+    def _critic_vars(self, params, is_target=False, batch_stats=None):
         if self.use_spec_norm:
-            bs = self.target_critic.batch_stats if is_target else self.critic.batch_stats
+            if batch_stats is not None:
+                bs = batch_stats
+            elif is_target:
+                bs = self.target_critic.batch_stats
+            else:
+                bs = self.critic.batch_stats
             return {"params": params, "batch_stats": bs}
         else:
             return {"params": params}
@@ -251,9 +256,17 @@ class SACLearnerV2(Agent):
             target_params = subsample_ensemble(
                 key, self.target_critic.params,
                 self.num_min_qs, self.num_qs)
+            if self.use_spec_norm:
+                target_batch_stats = subsample_ensemble(
+                    key, self.target_critic.batch_stats,
+                    self.num_min_qs, self.num_qs)
+            else:
+                target_batch_stats = None
             key, rng = jax.random.split(rng)
             next_qs = self.target_critic.apply_fn(
-                self._critic_vars(target_params, is_target=True),
+                self._critic_vars(
+                    target_params, is_target=True,
+                    batch_stats=target_batch_stats),
                 batch["next_observations"],
                 next_actions, True,
                 rngs={"dropout": key})
@@ -282,6 +295,7 @@ class SACLearnerV2(Agent):
                      "batch_stats": self.critic.batch_stats},
                     batch["observations"],
                     batch["actions"], True,
+                    update_stats=True,
                     rngs={"dropout": key},
                     mutable=["batch_stats"])
                 new_batch_stats = new_state["batch_stats"]

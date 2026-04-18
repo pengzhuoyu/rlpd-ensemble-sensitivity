@@ -217,7 +217,8 @@ def main(_):
                 agent = agent.replace(
                     critic=fresh.critic,
                     target_critic=agent.target_critic.replace(
-                        params=fresh.critic.params))
+                        params=fresh.critic.params,
+                        batch_stats=fresh.critic.batch_stats))
                 did_reset = True
                 print("[{:>7}] CRITIC RESET (seed={})".format(
                     i, FLAGS.seed + 7777), flush=True)
